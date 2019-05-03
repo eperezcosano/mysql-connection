@@ -6,20 +6,16 @@ import java.util.List;
 
 public class UsersDAO {
 
-    public void addUser (String name, String address) {
+    public void addUser (String name, String address) throws Exception {
         Session session = Factory.getSession();
         User user = new User(name, address);
         session.save(user);
-
-        session.forceClose();
+        session.close();
     }
 
-    public User updateUser() {
+    public List<User> getAllUsers() {return null;}
 
-    }
-
-    public List<User> getAllUsers() {}
-
+    /*
     public User getUsers (String id) {
         Session session = Factory.getSession();
 
@@ -28,10 +24,16 @@ public class UsersDAO {
         return user;
 
         session.forceClose();
-    }
+    }*/
 
     public static void main (String [] user ){
         UsersDAO dao = new UsersDAO();
-        dao.addUser("Mario", "AAA");
+        try {
+            dao.addUser("Mario", "AAA");
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
     }
 }

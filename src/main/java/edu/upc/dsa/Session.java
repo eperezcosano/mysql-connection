@@ -8,5 +8,5 @@ public interface Session<E> {
     void update(Object object, int id);
     void delete(Object object, int id);
     List<Object> findAll(Class theClass);
-    void close();
+    void close() throws Exception;
 }
