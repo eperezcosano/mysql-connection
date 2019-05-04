@@ -4,7 +4,6 @@ import org.apache.log4j.Logger;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -39,18 +38,16 @@ public class SessionImpl implements Session {
         query += sb.deleteCharAt(sb.length() - 1).toString();
         query += ")";
 
-        log.info("query: " + query);
-
         PreparedStatement prep = this.connection.prepareStatement(query);
-
         for (int i = 1; i < fields.length + 1; i++) prep.setString(i, new PropertyDescriptor(fields[i - 1].getName(), entity.getClass()).getReadMethod().invoke(entity).toString());
         prep.execute();
+        prep.close();
 
         log.info("query: " + query);
     }
 
     public Object get(Class theClass, int id) {
-        String query ="SELECT * FROM " + theClass.getSimpleName() + "WHERE id = " + id;
+        String query ="SELECT * FROM " + theClass.getSimpleName() + " WHERE id = " + id;
         System.out.println("query "+query);
         return null;
     }
