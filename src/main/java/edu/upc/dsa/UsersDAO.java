@@ -6,9 +6,9 @@ import java.util.List;
 
 public class UsersDAO {
 
-    public void addUser (String name, String address) throws Exception {
+    private void addUser (String name, String password) throws Exception {
         Session session = Factory.getSession();
-        User user = new User(name, address);
+        User user = new User(name, password);
         session.save(user);
         session.close();
     }

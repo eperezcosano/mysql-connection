@@ -1,32 +1,52 @@
 package edu.upc.dsa;
 
+import org.apache.log4j.Logger;
+
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.List;
 
 public class SessionImpl implements Session {
 
+    private Logger log = Logger.getLogger(SessionImpl.class.getName());
     private Connection connection;
 
-    public SessionImpl() throws Exception {
-        this.connection = MysqlConn.getConnection();
+    SessionImpl() {
+        try {
+            Class.forName("com.mysql.jdbc.Driver").newInstance();
+            this.connection = DriverManager.getConnection("jdbc:mysql://localhost/dsaDDBB", "root", "root");
+        } catch (Exception e) {
+            log.error("Error exception");
+            e.printStackTrace();
+        }
     }
 
-    public void save(Object entity) {
-
-        String query ="INSERT INTO " + entity.getClass().getSimpleName()+" () VALUES ()";
-        System.out.println("query "+query);
+    public void save(Object entity) throws Exception {
 
         Field[] fields = entity.getClass().getDeclaredFields();
-        for (Field f: fields) {
-            System.out.println(" "+f.getName()+",");
+        StringBuilder sb = new StringBuilder();
 
-        }
+        String query ="INSERT INTO " + entity.getClass().getSimpleName() +" (";
+        for (Field f: fields) sb.append(f.getName()).append(",");
+        query += sb.deleteCharAt(sb.length() - 1).toString();
+        query += ") VALUES (";
+        sb = new StringBuilder();
+        for (Field f: fields) sb.append("?,");
+        query += sb.deleteCharAt(sb.length() - 1).toString();
+        query += ")";
 
-        for (Field f: fields) {
-            System.out.println(" ?,");
+        log.info("query: " + query);
 
-        }
+        PreparedStatement prep = this.connection.prepareStatement(query);
+
+        for (int i = 1; i < fields.length + 1; i++) prep.setString(i, new PropertyDescriptor(fields[i - 1].getName(), entity.getClass()).getReadMethod().invoke(entity).toString());
+        prep.execute();
+
+        log.info("query: " + query);
     }
 
     public Object get(Class theClass, int id) {
