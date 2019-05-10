@@ -57,14 +57,29 @@ public class SessionImpl implements Session {
         return find(theClass, 0);
     }
 
-    public void update(Object entity, int id) {
-        //String query ="UPDATE" + entity.getClass().getSimpleName() + "SET";
-        //System.out.println("query "+query);
+    public void update(Object entity, int id) throws Exception {
+        Field[] fields = entity.getClass().getDeclaredFields();
+        StringBuilder sb = new StringBuilder();
+
+        String query ="UPDATE " + entity.getClass().getSimpleName() +" SET ";
+        for (Field f: fields) sb.append(f.getName()).append("=?,");
+        query += sb.deleteCharAt(sb.length() - 1).toString();
+        query += " WHERE id = ?";
+
+        PreparedStatement prep = this.connection.prepareStatement(query);
+        for (int i = 1; i < fields.length + 1; i++) prep.setString(i, new PropertyDescriptor(fields[i - 1].getName(), entity.getClass()).getReadMethod().invoke(entity).toString());
+        prep.setInt(fields.length + 1, id);
+        prep.execute();
+        prep.close();
+
+        log.info("query: " + query);
     }
 
-    public void delete(Object object, int id) {
-        String query ="DELETE FROM " + object.getClass().getSimpleName() + "WHERE id = " + id;
-        System.out.println("query "+query);
+    public void delete(Class theClass, int id) throws Exception {
+        String query ="DELETE FROM " + theClass.getSimpleName() + " WHERE id = ?";
+        PreparedStatement prep = this.connection.prepareStatement(query);
+        prep.setInt(1 , id);
+        prep.execute();
     }
 
     public void close() throws Exception {

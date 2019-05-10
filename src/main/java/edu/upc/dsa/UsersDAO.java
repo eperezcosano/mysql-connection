@@ -54,15 +54,46 @@ public class UsersDAO {
         return users;
     }
 
+    public void deleteUser(int id) throws Exception {
+
+        Session session = null;
+
+        try {
+            session = Factory.getSession();
+            session.delete(User.class, id);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (session != null) session.close();
+        }
+
+    }
+
+    public void updateUser(User user) throws Exception{
+
+        Session session = null;
+
+        try {
+            session = Factory.getSession();
+            session.update(user, user.getId());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if (session != null) session.close();
+        }
+    }
+
     public static void main (String [] user ){
         UsersDAO dao = new UsersDAO();
         try {
             //dao.addUser("Mario", "AAA");
-            List<User> res = dao.getAllUsers();
-            System.out.println(res);
+            //List<User> res = dao.getAllUsers();
+            //System.out.println(res);
 
-            User example = dao.get(2);
-            System.out.println(example);
+            //User example = dao.get(2);
+            //dao.deleteUser(4);
+            //System.out.println(example);
+            dao.updateUser(new User(1, "SuperIzan", "SuperPassword"));
         } catch (Exception e) {
             e.printStackTrace();
         }
