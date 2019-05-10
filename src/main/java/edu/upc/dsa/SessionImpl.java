@@ -7,6 +7,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.sql.*;
 import java.sql.Types.*;
+import java.util.ArrayList;
 import java.util.List;
 
 import static java.sql.Types.*;
@@ -48,82 +49,12 @@ public class SessionImpl implements Session {
         log.info("query: " + query);
     }
 
-    public Object get(Class theClass, int id) {
-        Statement stmt = null;
-        ResultSet rs = null;
-        Object object = null;
-        ResultSetMetaData rsmd = null;
-
-        try {
-            stmt = this.connection.createStatement();
-            if (stmt.execute("SELECT * FROM " + theClass.getSimpleName()+" WHERE id="+id)) {
-                rs = stmt.getResultSet();
-                rsmd = rs.getMetaData();
-
-                if ((rs!=null) && rs.next()) {
-                    System.out.println(rs.getString(1)+ " "+
-                    rs.getString(2)+ " "+
-                    rs.getString(3));
-
-                    object = theClass.newInstance();
-
-                    int nCols = rsmd.getColumnCount();
-                    System.out.println("num Cols: "+nCols);
-
-                    System.out.println(rsmd.getColumnLabel(1));
-                    System.out.println(rsmd.getColumnLabel(2));
-                    System.out.println(rsmd.getColumnLabel(3));
-                    System.out.println(rsmd.getColumnType(1));
-                    System.out.println(rsmd.getColumnType(2));
-                    System.out.println(rsmd.getColumnType(3));
-
-                    System.out.println("VARCHAR "+VARCHAR);
-                    System.out.println("DATE "+ DATE);
-                    System.out.println("INTEGER " + INTEGER);
-                    int _id = rs.getInt(1);
-                    String username = rs.getString(2);
-                    String password = rs.getString(3);
-
-                    ((User)object).setId(_id);
-                    ((User)object).setUsername(username);
-                    ((User)object).setPassword(password);
-
-
-                    // object."setPassword"
-                }
-
-
-            }
-
-            log.info(rs);
-            return object;
-        }
-        catch (SQLException ex){
-            log.error("SQLException: " + ex.getMessage());
-            log.error("SQLState: " + ex.getSQLState());
-            log.error("VendorError: " + ex.getErrorCode());
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        } catch (InstantiationException e) {
-            e.printStackTrace();
-        } finally {
-            if (rs != null) {
-                try {
-                    rs.close();
-                } catch (SQLException sqlEx) { } // ignore
-
-                rs = null;
-            }
-
-            if (stmt != null) {
-                try {
-                    stmt.close();
-                } catch (SQLException sqlEx) { } // ignore
-
-                stmt = null;
-            }
+    public Object get(Class theClass, int id) throws Exception {
+        return find(theClass, id).get(0);
     }
-        return null;
+
+    public List<Object> findAll(Class theClass) throws Exception {
+        return find(theClass, 0);
     }
 
     public void update(Object entity, int id) {
@@ -136,11 +67,66 @@ public class SessionImpl implements Session {
         System.out.println("query "+query);
     }
 
-    public List<Object> findAll(Class theClass) {
-        return null;
-    }
-
     public void close() throws Exception {
         this.connection.close();
     }
+
+    private List<Object> find(Class theClass, int id) throws Exception {
+
+        List<Object> res = new ArrayList<Object>();
+        ResultSet rs;
+        Object object;
+        String query;
+        if (id != 0) {
+            query = "SELECT * FROM " + theClass.getSimpleName() + " WHERE id = ?";
+            PreparedStatement prep = this.connection.prepareStatement(query);
+            prep.setInt(1, id);
+            prep.execute();
+            rs = prep.getResultSet();
+        }
+        else {
+            query = "SELECT * FROM " + theClass.getSimpleName();
+            Statement statement = this.connection.createStatement();
+            statement.execute(query);
+            rs = statement.getResultSet();
+        }
+
+        while (rs.next() != false) {
+
+            object = theClass.newInstance();
+
+            for (int i = 1; i <=rs.getMetaData().getColumnCount(); i++)
+            {
+                String columnName = rs.getMetaData().getColumnName(i);
+                columnName = columnName.substring(0, 1).toUpperCase() + columnName.substring(1);
+
+                switch (rs.getMetaData().getColumnType(i))
+                {
+                    case INTEGER:
+                        int intValue = rs.getInt(i);
+                        theClass.getMethod("set" + columnName, int.class).invoke(object, intValue);
+                        break;
+                    case VARCHAR:
+                        String stringValue = rs.getString(i);
+                        theClass.getMethod("set" + columnName, String.class).invoke(object, stringValue);
+                        break;
+                    case DATE:
+                        Date dateValue = rs.getDate(i);
+                        theClass.getMethod("set" + columnName, Date.class).invoke(object, dateValue);
+                        break;
+                    case BOOLEAN:
+                        Boolean booleanValue = rs.getBoolean(i);
+                        theClass.getMethod("set" + columnName, Boolean.class).invoke(object, booleanValue);
+                        break;
+                    default:
+                        break;
+                }
+            }
+
+            res.add(object);
+        }
+
+        return res;
+    }
+
 }
