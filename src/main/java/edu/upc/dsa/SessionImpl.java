@@ -1,13 +1,15 @@
 package edu.upc.dsa;
 
+import edu.upc.dsa.models.User;
 import org.apache.log4j.Logger;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
+import java.sql.*;
+import java.sql.Types.*;
 import java.util.List;
+
+import static java.sql.Types.*;
 
 public class SessionImpl implements Session {
 
@@ -47,8 +49,80 @@ public class SessionImpl implements Session {
     }
 
     public Object get(Class theClass, int id) {
-        String query ="SELECT * FROM " + theClass.getSimpleName() + " WHERE id = " + id;
-        System.out.println("query "+query);
+        Statement stmt = null;
+        ResultSet rs = null;
+        Object object = null;
+        ResultSetMetaData rsmd = null;
+
+        try {
+            stmt = this.connection.createStatement();
+            if (stmt.execute("SELECT * FROM " + theClass.getSimpleName()+" WHERE id="+id)) {
+                rs = stmt.getResultSet();
+                rsmd = rs.getMetaData();
+
+                if ((rs!=null) && rs.next()) {
+                    System.out.println(rs.getString(1)+ " "+
+                    rs.getString(2)+ " "+
+                    rs.getString(3));
+
+                    object = theClass.newInstance();
+
+                    int nCols = rsmd.getColumnCount();
+                    System.out.println("num Cols: "+nCols);
+
+                    System.out.println(rsmd.getColumnLabel(1));
+                    System.out.println(rsmd.getColumnLabel(2));
+                    System.out.println(rsmd.getColumnLabel(3));
+                    System.out.println(rsmd.getColumnType(1));
+                    System.out.println(rsmd.getColumnType(2));
+                    System.out.println(rsmd.getColumnType(3));
+
+                    System.out.println("VARCHAR "+VARCHAR);
+                    System.out.println("DATE "+ DATE);
+                    System.out.println("INTEGER " + INTEGER);
+                    int _id = rs.getInt(1);
+                    String username = rs.getString(2);
+                    String password = rs.getString(3);
+
+                    ((User)object).setId(_id);
+                    ((User)object).setUsername(username);
+                    ((User)object).setPassword(password);
+
+
+                    // object."setPassword"
+                }
+
+
+            }
+
+            log.info(rs);
+            return object;
+        }
+        catch (SQLException ex){
+            log.error("SQLException: " + ex.getMessage());
+            log.error("SQLState: " + ex.getSQLState());
+            log.error("VendorError: " + ex.getErrorCode());
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InstantiationException e) {
+            e.printStackTrace();
+        } finally {
+            if (rs != null) {
+                try {
+                    rs.close();
+                } catch (SQLException sqlEx) { } // ignore
+
+                rs = null;
+            }
+
+            if (stmt != null) {
+                try {
+                    stmt.close();
+                } catch (SQLException sqlEx) { } // ignore
+
+                stmt = null;
+            }
+    }
         return null;
     }
 
